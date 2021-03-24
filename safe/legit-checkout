@@ -1,0 +1,154 @@
+#!/usr/bin/perl -w
+
+
+$legit = "./.legit";
+if(! -d $legit){
+	print("legit-chackout: error: no .legit directory containing legit repository exists\n");
+	exit 1;
+}
+
+if(@ARGV != 1 || $ARGV[0] =~ /^-.*/){
+	print("usage: legit-checkout <branch>\n");
+	exit 1;
+}
+
+
+
+$targetBranch = $ARGV[0];
+if(! -d "./.legit/commits/branches/$targetBranch"){
+	print("legit-checkout: error: unknown branch '$targetBranch'\n");
+	exit 1;
+}
+
+use File::Compare;
+open my $f, '<', "./.legit/commits/currBranch" or die;
+$currBranch = <$f>;
+chomp $currBranch;
+close($f);
+
+if($currBranch eq $targetBranch){
+	print("Already on '$targetBranch'\n");
+	exit 0;
+}
+
+open my $currC, '<', "./.legit/commits/branches/$currBranch/currCommit" or die;
+$comNum = <$currC>;
+chomp $comNum;
+close($currC);
+
+open my $tar, '<', "./.legit/commits/branches/$targetBranch/currCommit" or die;
+$targetCom = <$tar>;
+chomp $targetCom;
+close($tar);
+
+if($targetCom == $comNum){
+	open CURR, '>', "./.legit/commits/currBranch";
+	print CURR "$targetBranch\n";
+	close(CURR);
+	print ("Switched to branch '$targetBranch'\n");
+	exit 0;
+}
+
+%poorFiles = ();
+%stayDir = ();
+%stayIndex = ();
+
+#if any files in the index is diff to what's in the current branch's commit, stuff the file into the hash %poorFiles, which is printed out later in the error message.
+opendir(DIR, "./.legit/index/files") or die;
+while ($currIndexF = readdir(DIR)){
+	chomp $currIndexF;
+	$repoFile = "./.legit/commits/objects/commit$comNum/$currIndexF";
+	next if ($currIndexF =~ /^\.\.?$/);
+	if (! -f $repoFile){ #if index file is not in commit
+		$tarFile = "./.legit/commits/objects/commit$targetCom/$currIndexF";
+		if(-f $tarFile && compare($currIndexF, $tarFile) != 0){
+		#if index file is in targetBranch's commit and they're diff
+			$poorFiles{$currIndexF} = 0;
+		} else {
+			$stayIndex{$currIndexF} = 0;
+		}
+	} elsif(compare($currIndexF, $repoFile) != 0){
+		$poorFiles{$currIndexF} = 0;
+	}
+}
+closedir(DIR);
+
+#check if files in current working directory are diff to commit, if they are, stuff them into %poorFiles
+opendir(WorkingDIR, "./") or die;
+while ($currDirF = readdir(WorkingDIR)){
+	chomp $currDirF;
+	$repoFile = "./.legit/commits/objects/commit$comNum/$currDirF";
+	next if (-d $currDirF);
+
+	#if the file is not in commit but in targetBranch's commit, stuff it into %poorFiles(even if they're the same)
+	if (! -f $repoFile){
+		$tarFile = "./.legit/commits/objects/commit$targetCom/$currDirF";
+		if(-f $tarFile){
+			$poorFiles{$currDirF} = 0 if(! exists $poorFiles{$currDirF});
+		} else {
+			$stayDir{$currDirF} = 0;
+		}
+	} elsif(compare($currDirF, $repoFile) != 0){
+		$poorFiles{$currIndexF} = 0  if(! exists $poorFiles{$currDirF});
+	}
+}
+closedir(WorkingDIR);
+
+if(keys %poorFiles){ #if there are any will-be-overwritten files
+	print ("legit-checkout: error: Your changes to the following files would be overwritten by checkout:\n");
+	foreach $poorF (sort keys %poorFiles){
+		print ("$poorF\n");
+	}
+	exit 1;
+}
+
+use File::Copy;
+
+#remove everything but directories and files in $stayDir
+opendir(Dir, "./") or die;
+while ($currF = readdir(Dir)){
+	unlink $currF if(! exists $stayDir{$currF});
+}
+
+#remove everything but files in $stayIndex
+opendir(Ind, "./.legit/index/files") or die;
+while ($currF = readdir(Ind)){
+	$currIndexFile = "./.legit/index/files/$currF";
+	$currIndexState = "./.legit/index/state/$currF";
+	if(! exists $stayIndex{$currF}){
+		unlink $currIndexState;
+		unlink $currIndexFile;
+	}
+}
+
+
+#copy all files in targetBranch's commit into working directory
+$tarRepoFiles = "./.legit/commits/objects/commit$targetCom";
+opendir(Tar, $tarRepoFiles) or die;
+while ($tarRepoF = readdir(Tar)){
+	next if(-d $tarRepoF);
+	copy("./.legit/commits/objects/commit$targetCom/$tarRepoF", "./") or die;
+	copy("./.legit/commits/objects/commit$targetCom/$tarRepoF", "./.legit/index/files") or die;
+}
+closedir(Tar);
+
+#update current branch
+open CURR, '>', "./.legit/commits/currBranch";
+print CURR "$targetBranch\n";
+close(CURR);
+
+#print message
+print ("Switched to branch '$targetBranch'\n");
+
+#compare working files with repo
+#compare index with repo
+#check if any left-over working files have corresponding commit in branch-to switch
+
+#grab all files in branch-to-sw-s commit to working dir and index
+#leftover working files from currcommit add in working dir also
+#leftover index files from currcommit add in new index also
+
+
+
+
+

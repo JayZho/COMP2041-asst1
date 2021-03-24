@@ -1,0 +1,103 @@
+#!/bin/dash
+
+
+#check if .legit exists
+if test ! -d ./.legit/
+then
+	echo "legit-status: error: no .legit directory containing legit repository exists"
+	exit 1
+fi
+
+#check if there's any commits yet
+number=`cat ./.legit/commits/rep`
+if test $number -eq -1
+then
+	echo "legit-status: error: your repository does not have any commits yet"
+	exit 1
+fi
+
+
+#empty .legit/collection file
+> ./.legit/collection
+
+#find the latest commit number in the current branch
+currBranch=`cat ./.legit/commits/currBranch`
+curr=`cat ./.legit/commits/branches/"$currBranch"/currCommit`
+
+
+#grab all files in current working directory
+for line in ./*
+do
+	if test -f $line
+	then
+		file=`echo $line|rev|cut -d'/' -f1|rev`
+		indexFile=./.legit/index/files/"$file"
+		repoFile=./.legit/commits/objects/"commit$curr"/"$file"
+		if test ! -f $indexFile #if file isn't added to index
+		then
+			echo "$file - untracked" >>./.legit/collection
+		elif test ! -f $repoFile #if file isn't in the latest commit; but added to index
+		then
+			echo "$file - added to index" >>./.legit/collection
+		elif test -f $repoFile #if file exist in working directory, index and latest commit
+		then
+			diff "$file" "$indexFile" >> /dev/null 2>&1
+			if test $? -ne 0 #if file in index is diff to working -d
+			then
+				diff "$repoFile" "$indexFile" >> /dev/null 2>&1
+				if test $? -eq 0 #if index same as latest commit
+				then
+					echo "$file - file changed, changes not staged for commit" >>./.legit/collection
+				else #if index diff to latest commit
+					echo "$file - file changed, different changes staged for commit" >>./.legit/collection
+				fi
+			else #if file in index same as working -d
+				diff "$repoFile" "$indexFile" >> /dev/null 2>&1
+				if test $? -ne 0 #if file in index diff to commit
+				then
+					echo "$file - file changed, changes staged for commit" >>./.legit/collection
+				else #if files in working -d, index and commit are all the same
+					echo "$file - same as repo" >>./.legit/collection
+				fi
+			fi
+		fi
+	fi
+done
+
+#find any possilble files that are in the last commit but not in current directory 
+find ./.legit/commits/objects/"commit$curr"/ -type f|
+while read line
+do
+	file=`echo $line|rev|cut -d'/' -f1|rev`
+	fileHere=./"$file"
+	indexFile=./.legit/index/files/"$file"
+	repoFile=./.legit/commits/objects/"commit$curr"/"$file"
+	if test ! -f $fileHere #if this file is removed from current working directory
+	then
+		if test ! -f $indexFile #if this file is also deleted from index
+		then	
+			echo "$file - deleted" >>./.legit/collection
+		else #if the file is removed only from working -d
+			if test ! -f $repoFile #if the file is also not in commit
+			then
+				echo "$file - added to index"
+			else
+				diff "$repoFile" "$indexFile" >> /dev/null 2>&1
+				if test $? -ne 0 #if index is diff to repo
+				then
+					echo "$file - file deleted, different changes staged for commit"
+				else
+					echo "$file - file deleted" >>./.legit/collection
+				fi
+			fi
+		fi
+	fi
+done
+
+#display the content in alphabetical order
+cat ./.legit/collection|sort 
+			
+
+			
+			
+		

@@ -1,0 +1,3 @@
+#!/bin/sh
+
+2041 legit-merge "$@"

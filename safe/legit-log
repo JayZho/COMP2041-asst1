@@ -1,0 +1,23 @@
+#!/bin/dash
+
+
+if test ! -d ./.legit/
+then
+	echo "legit-log: error: no .legit directory containing legit repository exists"
+	exit 1
+fi
+
+num=`cat ./.legit/commits/rep`
+if test $num -lt 0
+then
+	echo "legit-log: error: your repository does not have any commits yet"
+	exit 1
+fi
+
+currB=`cat ./.legit/commits/currBranch`
+cat ./.legit/commits/branches/$currB/itsCommits|
+while read num
+do
+	message="`cat ./.legit/commits/head/"commit$num"`"
+	echo "$num $message"
+done

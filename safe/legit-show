@@ -1,0 +1,79 @@
+#!/bin/dash
+
+
+if test ! -d ./.legit/
+then
+	echo "legit-show: error: no .legit directory containing legit repository exists"
+	exit 1
+fi
+
+#check if there's exactly 1 argument
+if test $# -ne 1
+then 
+	echo "usage: legit-show <commit>:<filename>"
+	exit 1
+fi
+
+#check filename validity
+filename="`echo "$@"|sed 's/^[^:]*://g'`" #everything after the first ":"
+echo "$filename"|egrep "^([0-9A-Za-z][0-9A-Za-z_.-]*)$" >/dev/null
+if test $? -ne 0
+then
+	echo "legit-show: error: invalid filename '$filename'"
+	exit 1
+fi
+
+#check if commit is passed in
+#extract commit-index and filename
+echo "$@"|egrep "^:" >/dev/null
+if test $? -eq 0
+then #commit is omitted
+	fileFound=./.legit/index/files/"$filename"
+	if test ! -f "$fileFound"
+	then
+		echo "legit-show: error: '$filename' not found in index"
+		exit 1
+	fi
+	cat $fileFound
+
+else #commit is passed in
+	commitNum=`echo $@|cut -d':' -f1`
+
+	echo $commitNum|egrep "^[0-9]+$" >/dev/null
+	if test $? -ne 0
+	then #wrong commit-index format
+		echo "legit-show: error: unknown commit '$commitNum'"
+		exit 1
+	fi
+
+	echo $commitNum|egrep "^0+[1-9][0-9]*$" >/dev/null
+	if test $? -eq 0
+	then #need to remove leading 0's
+		converted=`echo $commitNum|sed 's/^0*//g'`
+	else
+		converted=$((commitNum + 0))
+	fi
+	commitRepo=./.legit/commits/objects/"commit$converted"/
+	fileFound=./.legit/commits/objects/"commit$converted"/"$filename"
+	
+	#check if commit index exists
+	if test ! -d $commitRepo
+	then
+		echo "legit-show: error: unknown commit '$commitNum'"
+		exit 1
+	fi
+
+	#check if file exists at given index
+	if test ! -f $fileFound
+	then
+		echo "legit-show: error: '$filename' not found in commit $commitNum"
+		exit 1
+	fi
+
+	cat $fileFound
+fi
+
+
+
+
+	

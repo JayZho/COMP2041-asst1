@@ -1,0 +1,87 @@
+#!/bin/dash 
+
+
+
+if test ! -d ./.legit/
+then
+	echo "legit-add: error: no .legit directory containing legit repository exists"
+	exit 1
+fi
+
+#usage prompt
+echo $1|egrep "^-.+$" >/dev/null
+if test $? -eq 0
+then
+	echo "usage: legit-add <filenames>"
+	exit 1
+elif test $# -eq 0
+then
+	echo "usage: legit-add <filenames>"
+	exit 1
+fi
+
+
+for eachname in "$@"
+do
+	#get paths to file in working -d and index
+	track=./.legit/index/files/$eachname
+	file=./$eachname
+
+	#check filename validity
+	echo "$eachname"|egrep "^[0-9a-zA-Z][0-9A-Za-z_.-]*$" >/dev/null
+	if test $? -ne 0
+	then
+		echo "legit-add: error: invalid filename '$eachname'"
+		exit 1
+	fi
+
+	#check if file is not regular
+	if test -d $eachname 
+	then
+		echo "legit-add: error: '$eachname' is not a regular file"
+		exit 1
+	fi
+
+	#check if the file is deleted in both working directory and index
+	if ! test -f $file #if file is deleted in working direcoty
+	then
+		if ! test -f $track #if file is untracked(i.e. deleted from index)
+		then
+			echo "legit-add: error: can not open '$eachname'"
+			exit 1
+		fi
+	fi
+done
+
+
+#get the current branch
+currB=`cat ./.legit/commits/currBranch`
+
+for name in "$@"
+do	
+	#get paths to file in working -d and index
+	track=./.legit/index/files/$name
+	file=./$name
+	
+	#check if the file is deleted in both working directory and index
+	if ! test -f $file #if file is deleted in working direcoty
+	then
+		rm ./.legit/index/state/"$name"
+		rm ./.legit/index/files/"$name"
+		continue
+	fi
+
+	#find corresponding file in commits/objects/commit$latestIndex
+	index=`cat ./.legit/commits/branches/$currB/currCommit`
+	found=`find ./.legit/commits/objects/"commit$index" -name $name 2>/dev/null` 
+	#add file and update its state
+	diff "$found" "$name" >> /dev/null 2>&1
+	if test $? -ne 0 #if added file is different to repo, or not in repo
+	then
+		echo 1 >./.legit/index/state/"$name" #1 means: file different to repo
+		cp "$name" ./.legit/index/files
+	else
+		echo 0 >./.legit/index/state/"$name" #0 means: file same as repo
+		cp "$name" ./.legit/index/files
+	fi
+done

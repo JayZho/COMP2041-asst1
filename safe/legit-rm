@@ -1,0 +1,253 @@
+#!/bin/dash
+
+#check if .legit is initialized
+if test ! -d ./.legit/
+then
+	echo "legit-rm: error: no .legit directory containing legit repository exists"
+	exit 1
+fi
+
+force=0
+cached=0
+
+if test $# -eq 0
+then	
+	echo "usage: legit-rm [--force] [--cached] <filename>"
+	exit 1
+fi	
+
+echo $1|egrep "\-.+" >/dev/null
+if test $? -eq 0 #if first argument is intended as either --cached or --force
+then
+	echo $1|egrep "^--force$" >/dev/null #check if it is --force
+	if test $? -eq 0 #if it is --force
+	then
+		force=1
+		echo $2|egrep "\-.+" >/dev/null
+		if test $? -eq 0 #if 1st arg is --force, and 2nd arg is intended as --cached		 
+		then
+			echo $2|egrep "^--cached$" >/dev/null #check if 2nd arg is --cached
+			if test $? -eq 0
+			then
+				force=2
+			else
+				echo "usage: legit-rm [--force] [--cached] <filename>"
+				exit 1
+			fi	
+		fi
+	else
+		echo $1|egrep "^--cached$" >/dev/null #check if it is --cached
+		if test $? -eq 0 #if it is --cached
+		then
+			cached=1
+		else
+			echo "usage: legit-rm [--force] [--cached] <filename>"
+			exit 1
+		fi
+	fi
+fi
+			
+if test $force -eq 1 #if there is only --force
+then
+	if test $# -eq 1
+	then
+		echo "usage: legit-rm [--force] [--cached] <filename>"
+		exit 1
+	fi
+
+	shift 1
+	#error checking
+	for each in $@
+	do
+		#check filename validity
+		echo "$each"|egrep "^[0-9a-zA-Z][0-9A-Za-z_.-]*$" >/dev/null
+		if test $? -ne 0
+		then
+			echo "legit-rm: error: invalid filename '$each'"
+			exit 1
+		fi
+		
+		#check if file exists in index
+		if test ! -f ./.legit/index/files/"$each"
+		then
+			echo "legit-rm: error: '$each' is not in the legit repository"
+			exit 1
+		fi
+	done
+
+	for each in $@
+	do
+		rm ./.legit/index/files/"$each" >> /dev/null 2>&1
+		rm ./.legit/index/state/"$each" >> /dev/null 2>&1
+		rm ./"$each" >> /dev/null 2>&1
+	done
+elif test $force -eq 2 #if there are both --force and --cached
+then
+	if test $# -eq 2
+	then
+		echo "usage: legit-rm [--force] [--cached] <filename>"
+		exit 1
+	fi
+
+	shift 2
+	#error checking before changing anything
+	for each in $@
+	do
+		#check filename validity
+		echo "$each"|egrep "^[0-9a-zA-Z][0-9A-Za-z_.-]*$" >/dev/null
+		if test $? -ne 0
+		then
+			echo "legit-rm: error: invalid filename '$each'"
+			exit 1
+		fi
+		
+		#check if file exists in index
+		if test ! -f ./.legit/index/files/"$each"
+		then
+			echo "legit-rm: error: '$each' is not in the legit repository"
+			exit 1
+		fi
+	done
+
+	for each in $@
+	do
+		rm ./.legit/index/files/"$each" >> /dev/null 2>&1
+		rm ./.legit/index/state/"$each" >> /dev/null 2>&1
+	done
+elif test $cached -eq 1 #if there is only --cached
+then
+	if test $# -eq 1
+	then
+		echo "usage: legit-rm [--force] [--cached] <filename>"
+		exit 1
+	fi
+
+	currBranch=`cat ./.legit/commits/currBranch`
+	curr=`cat ./.legit/commits/branches/"$currBranch"/currCommit`
+	shift 1
+	for each in $@
+	do
+		index=./.legit/index/files/"$each"
+		repo=./.legit/commits/objects/"commit$curr"/"$each"
+
+		#check filename validity
+		echo "$each"|egrep "^[0-9a-zA-Z][0-9A-Za-z_.-]*$" >/dev/null
+		if test $? -ne 0
+		then
+			echo "legit-rm: error: invalid filename '$each'"
+			exit 1
+		fi
+		
+		#check if file exists in index
+		if test ! -f ./.legit/index/files/"$each"
+		then
+			echo "legit-rm: error: '$each' is not in the legit repository"
+			exit 1
+		fi
+
+		#error handling for to-be-lost files
+		if test -f $each #if file exists in working directory
+		then
+			diff "$index" "$repo" >> /dev/null 2>&1
+			if test $? -ne 0 #if index diff to commit
+			then
+				diff "$index" "$each" >> /dev/null 2>&1
+				if test $? -ne 0 #if index diff to both commit & file in working -d
+				then
+					echo "legit-rm: error: '$each' in index is different to both working file and repository"
+					exit 1
+				fi
+			fi
+		fi
+	done
+	
+	
+	#actually removing stuff now
+	for each in $@
+	do
+		index=./.legit/index/files/"$each"
+		repo=./.legit/commits/objects/"commit$curr"/"$each"
+
+		if test ! -f $each #if file is deleted from working directory, happily remove it
+		then
+			rm ./.legit/index/files/"$each" >> /dev/null 2>&1
+			rm ./.legit/index/state/"$each" >> /dev/null 2>&1
+		else #if file is in working directory
+			diff "$index" "$repo" >> /dev/null 2>&1
+			if test $? -eq 0 #if index same as file in last commit, happily remove it from index
+			then 
+				rm ./.legit/index/files/"$each" >> /dev/null 2>&1
+				rm ./.legit/index/state/"$each" >> /dev/null 2>&1
+			else #index diff to commit
+				diff "$index" "$each" >> /dev/null 2>&1
+				if test $? -eq 0 #index same as file in working -d, happliy remove it
+				then
+					rm ./.legit/index/files/"$each" >> /dev/null 2>&1
+					rm ./.legit/index/state/"$each" >> /dev/null 2>&1
+				fi
+			fi
+		fi
+	done
+else #there's no --cached nor --force
+	currBranch=`cat ./.legit/commits/currBranch`
+	curr=`cat ./.legit/commits/branches/"$currBranch"/currCommit`
+
+	for toRemove in $@
+	do
+		index=./.legit/index/files/"$toRemove"
+		repo=./.legit/commits/objects/"commit$curr"/"$toRemove"
+
+		#check filename validity
+		echo "$toRemove"|egrep "^[0-9a-zA-Z][0-9A-Za-z_.-]*$" >/dev/null
+		if test $? -ne 0
+		then
+			echo "legit-rm: error: invalid filename '$toRemove'"
+			exit 1
+		fi
+
+		#error handling for to-be-lost files
+		if test ! -f $index #if file in index doesn't exist
+		then
+			echo "legit-rm: error: '$toRemove' is not in the legit repository"
+			exit 1
+		else
+			diff "$index" "$repo" >> /dev/null 2>&1
+			if test $? -ne 0 #if file in index is diff to repo
+			then 
+				diff "$toRemove" "$index" >> /dev/null 2>&1
+				if test $? -ne 0 #if file in working directory is diff to index
+				then
+					echo "legit-rm: error: '$toRemove' in index is different to both working file and repository"
+					exit 1
+				else #if file is same as index
+					echo "legit-rm: error: '$toRemove' has changes staged in the index"
+					exit 1
+				fi
+			else #if index is same as repo
+				diff "$toRemove" "$index" >> /dev/null 2>&1
+				if test $? -ne 0 #if file in working directory is diff to index
+				then
+					echo "legit-rm: error: '$toRemove' in repository is different to working file"
+					exit 1
+				fi
+			fi
+		fi
+	done
+
+	#if everything is all good after the previous error checking
+	for toRemove in $@
+	do
+		index=./.legit/index/files/"$toRemove"
+		repo=./.legit/commits/objects/"commit$curr"/"$toRemove"
+
+		if test ! -f $toRemove #if file doesn't exist in working direcoty
+		then
+			rm ./.legit/index/files/"$toRemove"
+			rm ./.legit/index/state/"$toRemove"
+		else
+			rm ./.legit/index/files/"$toRemove"
+			rm ./.legit/index/state/"$toRemove"
+			rm ./"$toRemove"
+		fi
+	done
+fi

@@ -1,0 +1,30 @@
+#!/bin/dash
+
+mkdir .legit 2>/dev/null
+if test $? -ne 0
+then
+	echo "legit-init: error: .legit already exists"
+	exit 1
+fi
+
+#init index directory
+mkdir ./.legit/index/
+mkdir ./.legit/index/files
+mkdir ./.legit/index/state
+
+#init commits(repo)
+mkdir ./.legit/commits
+mkdir ./.legit/commits/head
+mkdir ./.legit/commits/objects
+mkdir ./.legit/commits/objects/"commit-1"
+echo -1 >./.legit/commits/rep
+echo "master" >./.legit/commits/currBranch
+mkdir ./.legit/commits/branches
+mkdir ./.legit/commits/branches/master
+> ./.legit/commits/branches/master/itsCommits
+echo -1 >./.legit/commits/branches/master/currCommit
+mkdir ./.legit/commits/branches/master/commitDiff
+
+
+
+echo "Initialized empty legit repository in .legit"

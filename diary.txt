@@ -1,0 +1,165 @@
+Date: 28/06/2019
+==========================================
+Time: 12:00 - 14:00
+Activity: getting started
+Comments: read through & understood the assignment
+
+
+Date: 30/06/2019
+==========================================
+Time: 17:00 - 19:20
+Activity: understanding git
+Comments: read some online documents about how git stores/add/commit data
+
+
+Date: 01/07/2019
+==========================================
+Time: 14:00 - 18:00
+Activity: coding
+Comments: implemented legit-init/add/commit, passed some basic test cases
+
+Time: 19:30 - 21:00
+Activity: coding
+Comments: implemented legit-log/show
+
+Time: 21:00 - 22:00
+Activity: testing my programs
+Comments: tested legit-add/commits on edge cases, found some bugs; also found bugs from legit-log/show from autotesting
+
+Time: 22:00 - 23:30
+Activity: debugging
+Comments: fixed bugs subset0, passed all autotests for subset0
+
+Time: 1:00 - 1:30
+Activity: debugging
+Comments: found bugs in legit-add/commit, which didn't get tested by subset0 autotest cases.
+
+
+Date: 02/07/2019
+==========================================
+Time: 12:30 - 16:00
+Activity: coding
+Comments: partially re-constructed legit-add/commit program, in order to be fully functioning on all test cases.(at least for all the test cases I could think of)
+
+Time: 16:00 - 17:30
+Activity: coding
+Comments: implemented legit-commit -a -m message in subset1
+
+Time: 18:00 - 21:15
+Activity: coding
+Comments: implemented legit-rm without --cached/--force options, as well as legit-status
+
+Time: 21:30 - 22:30
+Activity: debugging
+Comments: found and fixed some subtle bugs in legit-status
+
+
+Date: 03/07/2019
+==========================================
+Time: 12:00 - 15:30
+Activity: coding
+Comments: implemented legit-rm with --cached & --force options
+
+Time: 15:45 - 17:00
+Activity: debugging
+Comments: found and fixed bugs in legit-rm [--cached] [--force], passed all autotests for subset1
+
+
+Date: 05/07/2019
+==========================================
+Time: 16:00 - 22:00 
+Activity: understanding git-branch and git-checkout
+Comments: read online resources as well as tested the reference implementation, in order to understnad how legit-branch should behave under all different circumtances
+
+
+Date: 06/07/2019
+==========================================
+Time: 9:00 - 12:20
+Activity: understanding git-branch and git-checkout
+Comments: tested the reference implementation, made hypothesis about its operating logic, in order to understnad how legit-branch should behave under all different circumtances
+
+
+Date: 07/07/2019
+==========================================
+Time: 10:00 - 13:00
+Activity: coding
+Comments: implemented git-branch and part of git-checkout
+
+Time: 16:00 - 18:20
+Activity: coding
+Comments: finished implementing git-checkout
+
+Time: 19:00 - 20:50
+Activity: debugging
+Comments: found bugs in git-rm, git-add about error handling precedence; also found bugs in git-checkout. Fixed bugs in git-checkout
+
+Time: 22:00 - 23:10
+Activity: debugging
+Comments: fixed bugs in git-add and git-rm
+
+Time: 23:10 - 2:05
+Activity: understanding git-merge
+Comments: read online resources as well as tested the reference implementation, in order to understnad how legit-merge should behave under all different circumtances
+
+
+Date: 10/07/2019
+==========================================
+Time: 13:00 - 16:00
+Activity: brain-storming
+Comments: trying to figure out a way to structure my merge
+
+Time: 16:00 - 19:20
+Activity: coding
+Comments: refactoring subset0's legit-commit to pre-store differences between each commit and branching point
+
+
+Date: 12/07/2019
+==========================================
+Time: 10:00 - 12:00
+Activity: re-refactoring
+Comments: realized that my previous approach (pre-storing differences) is too inefficient especially when commit number grows large, so I got rid of the pre-storing bit and worked on comparing difference in merging stage
+
+Time: 13:00 - 18:00
+Activity: coding
+Comments: implementing legit-merge
+
+Time: 18:00 - 20:30
+Activity: understanding
+Comments: I found a case where there's supposed to be merge conflict but my program merged it smoothly. Then I figured out the reason and looked for solution on the internet on how to get differences between 2 files on each line.
+ 
+Time: 21:00 - 23:00
+Activity: refactoring
+Comments: refacrtored legit-branch -d to handle errors and edge cases.
+
+
+Date: 13/07/2019
+==========================================
+Time: 13:00 - 17:30
+Activity: coding
+Comments: finished legit-merge, found some bugs on fast-forward
+
+
+Date: 14/07/2019
+==========================================
+Time: 11:00 - 13:40
+Activity: debugging
+Comments: fixed bugs in legit-merge, passed all autotests.
+
+Time: 14:00 - 18:20
+Activity: writing test scripts
+Comments: wrote 10 test scripts for testing different aspects of legit programs.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

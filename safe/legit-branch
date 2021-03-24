@@ -1,0 +1,78 @@
+#!/usr/bin/perl -w
+
+
+my $legit = "./.legit";
+if(! -d $legit){
+	print("legit-branch: error: no .legit directory containing legit repository exists\n");
+	exit 1;
+}
+
+$commit = "./.legit/commits/objects/commit0";
+if (! -d $commit){
+	print("legit-branch: error: your repository does not have any commits yet\n");
+	exit 1;
+}
+
+use File::Copy;
+$toOpen = "./.legit/commits/branches";
+if (@ARGV == 0){
+	opendir( DIR, $toOpen ) or die;
+	while($branchName = readdir(DIR)){
+		next if $branchName =~ /^\.\.?$/;
+		$allNames{$branchName} = 0;
+	}
+	closedir(DIR);
+
+	foreach $name (sort keys %allNames){
+		print("$name\n");
+	}
+	exit 0;
+} elsif (@ARGV == 1){
+	
+	$newBranch = $ARGV[0];
+	chomp $newBranch;
+
+	if (! $newBranch =~ /^[A-Za-z][_0-9A-Za-z-]*$/){
+		print ("legit-branch: error: invalid branch name '$newBranch'\n");
+		exit 1;
+	}
+
+	if (-d "./.legit/commits/branches/$newBranch"){
+		print ("legit-branch: error: branch '$newBranch' already exists\n");
+		exit 1;
+	}
+
+	#get current branch
+	open my $f, '<', "./.legit/commits/currBranch" or die;
+	$currBranch = <$f>;
+	chomp $currBranch;
+	close($f);
+
+	#get current branch's last commit
+	open my $g, '<', "./.legit/commits/branches/$currBranch/currCommit" or die;
+	$currCommit = <$g>;
+	chomp $currCommit;
+	close($g);
+
+	#initialize $newBranch/itsCommits
+	mkdir "./.legit/commits/branches/$newBranch";
+	open my $a, '>', "./.legit/commits/branches/$newBranch/itsCommits";
+	print $a "$currCommit\n";
+	close($a);
+	
+	#initialize $newBranch/currCommit
+	open my $b, '>', "./.legit/commits/branches/$newBranch/currCommit";
+	print $b "$currCommit\n";
+	close($b);
+
+	#initialize $newBranch/commitDiffs
+	mkdir  "./.legit/commits/branches/$newBranch/commitDiff";
+
+
+} else {
+	print("usage: legit-branch [-d] <branch>\n");
+	exit 1;
+}
+
+
+
